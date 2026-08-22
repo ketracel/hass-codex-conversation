@@ -6,6 +6,7 @@ from homeassistant.helpers import llm
 DOMAIN = "codex_conversation"
 
 MODELS = [
+    "gpt-5.6-sol",
     "gpt-5.1-codex",
     "gpt-5.2-codex",
     "gpt-5.3-codex",
