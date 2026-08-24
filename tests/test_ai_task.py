@@ -14,7 +14,10 @@ from custom_components.codex_conversation.ai_task import (
     CodexAITaskEntity,
     _format_structure_instruction,
 )
-from custom_components.codex_conversation.codex_api import OutputTextDelta
+from custom_components.codex_conversation.codex_api import (
+    OutputTextDelta,
+    ResponseCompleted,
+)
 from custom_components.codex_conversation.const import DOMAIN
 
 from .conftest import make_chat_log
@@ -85,6 +88,49 @@ async def test_generate_data_parses_json_result(mock_ai_task_entity):
 
     assert result.conversation_id == "conv-2"
     assert result.data == {"answer": "ok"}
+
+
+async def test_generate_data_exposes_usage_attributes(mock_ai_task_entity):
+    """Completed response usage should be readable from the AI Task entity."""
+    chat_log = make_chat_log(
+        [
+            AssistantContent(
+                agent_id="ai_task.codex", content="Result text", tool_calls=None
+            )
+        ]
+    )
+    task = MagicMock(spec=ai_task_component.GenDataTask)
+    task.structure = None
+    task.name = "summarize"
+
+    async def fake_stream(request):
+        yield OutputTextDelta(delta="Result text", content_index=0)
+        yield ResponseCompleted(
+            usage={
+                "input_tokens": 120,
+                "input_tokens_details": {"cached_tokens": 20},
+                "output_tokens": 30,
+                "output_tokens_details": {"reasoning_tokens": 10},
+                "total_tokens": 150,
+            }
+        )
+
+    with (
+        patch(
+            "custom_components.codex_conversation.ai_task.CodexClient"
+        ) as MockClient,
+        patch.object(mock_ai_task_entity, "async_write_ha_state"),
+    ):
+        MockClient.return_value.stream = fake_stream
+        await mock_ai_task_entity._async_generate_data(task, chat_log)
+
+    attributes = mock_ai_task_entity.extra_state_attributes
+    assert attributes["last_input_tokens"] == 120
+    assert attributes["last_cached_input_tokens"] == 20
+    assert attributes["last_output_tokens"] == 30
+    assert attributes["last_reasoning_tokens"] == 10
+    assert attributes["last_total_tokens"] == 150
+    assert attributes["last_usage_at"] is not None
 
 
 def test_format_structure_instruction():

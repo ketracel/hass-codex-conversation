@@ -12,6 +12,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util import dt as dt_util
 from homeassistant.util.json import json_loads
 
 from .codex_api import CodexClient
@@ -72,6 +73,8 @@ class CodexAITaskEntity(ai_task.AITaskEntity):
             ai_task.AITaskEntityFeature.GENERATE_DATA
             | ai_task.AITaskEntityFeature.SUPPORT_ATTACHMENTS
         )
+        self._last_usage: dict = {}
+        self._last_usage_at: str | None = None
 
     @property
     def _options(self) -> dict:
@@ -87,6 +90,24 @@ class CodexAITaskEntity(ai_task.AITaskEntity):
             "model": self._options.get(CONF_MODEL, DEFAULT_MODEL),
         }
 
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Expose token usage from the most recent completed AI Task call."""
+        if not self._last_usage:
+            return {}
+
+        input_details = self._last_usage.get("input_tokens_details") or {}
+        output_details = self._last_usage.get("output_tokens_details") or {}
+        return {
+            "last_usage": self._last_usage,
+            "last_usage_at": self._last_usage_at,
+            "last_input_tokens": self._last_usage.get("input_tokens", 0),
+            "last_cached_input_tokens": input_details.get("cached_tokens", 0),
+            "last_output_tokens": self._last_usage.get("output_tokens", 0),
+            "last_reasoning_tokens": output_details.get("reasoning_tokens", 0),
+            "last_total_tokens": self._last_usage.get("total_tokens", 0),
+        }
+
     async def _async_generate_data(
         self,
         task: ai_task.GenDataTask,
@@ -99,7 +120,7 @@ class CodexAITaskEntity(ai_task.AITaskEntity):
         )
         client = CodexClient(auth)
 
-        await async_run_chat_log(
+        usage = await async_run_chat_log(
             chat_log=chat_log,
             client=client,
             model=self._options.get(CONF_MODEL, DEFAULT_MODEL),
@@ -116,6 +137,11 @@ class CodexAITaskEntity(ai_task.AITaskEntity):
             instructions_suffix=_format_structure_instruction(task),
             max_iterations=100,
         )
+
+        if usage:
+            self._last_usage = usage
+            self._last_usage_at = dt_util.utcnow().isoformat()
+            self.async_write_ha_state()
 
         if not isinstance(chat_log.content[-1], conversation.AssistantContent):
             raise HomeAssistantError(

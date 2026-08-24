@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 import json
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from homeassistant.components import conversation
 from homeassistant.components.conversation import (
@@ -42,6 +42,7 @@ from .codex_api import (
     FunctionCallArgumentsDone,
     OutputTextDelta,
     ReasoningSummaryDelta,
+    ResponseCompleted,
 )
 from .const import (
     CONF_MODEL,
@@ -200,7 +201,7 @@ async def async_run_chat_log(
     max_iterations: int = MAX_TOOL_ITERATIONS,
     instructions_suffix: str = "",
     error_cls: type[Exception] = HomeAssistantError,
-) -> None:
+) -> dict[str, Any]:
     """Execute a ChatLog against the Codex Responses API."""
     tools = [format_tool(t) for t in chat_log.llm_api.tools] if chat_log.llm_api else []
     instructions = extract_instructions(chat_log)
@@ -210,6 +211,8 @@ async def async_run_chat_log(
             if instructions
             else instructions_suffix
         )
+
+    usage: dict[str, Any] = {}
 
     for _iteration in range(max_iterations):
         input_items = build_input_items(chat_log)
@@ -240,7 +243,7 @@ async def async_run_chat_log(
         try:
             async for _ in chat_log.async_add_delta_content_stream(
                 entity_id,
-                _events_to_deltas(client, request),
+                _events_to_deltas(client, request, usage),
             ):
                 pass
         except (
@@ -262,6 +265,8 @@ async def async_run_chat_log(
         if not chat_log.unresponded_tool_results:
             break
 
+    return usage
+
 
 # ── Streaming helpers ──────────────────────────────────────────────────────────
 
@@ -269,6 +274,7 @@ async def async_run_chat_log(
 async def _events_to_deltas(
     client: CodexClient,
     request: CodexRequest,
+    usage: dict[str, Any],
 ) -> AsyncGenerator[AssistantContentDeltaDict, None]:
     """Convert Codex ResponseEvents to HA's AssistantContentDeltaDict stream."""
     started = False
@@ -306,3 +312,17 @@ async def _events_to_deltas(
 
         elif isinstance(event, ReasoningSummaryDelta):
             _LOGGER.debug("codex reasoning: %.80s", event.delta)
+
+        elif isinstance(event, ResponseCompleted):
+            _merge_usage(usage, event.usage)
+
+
+def _merge_usage(total: dict[str, Any], increment: dict[str, Any]) -> None:
+    """Recursively add token usage from one Responses API iteration."""
+    for key, value in increment.items():
+        if isinstance(value, dict):
+            nested = total.setdefault(key, {})
+            if isinstance(nested, dict):
+                _merge_usage(nested, value)
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            total[key] = total.get(key, 0) + value

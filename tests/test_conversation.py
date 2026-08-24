@@ -28,6 +28,7 @@ from custom_components.codex_conversation.codex_api import (
     FunctionCallAdded,
     FunctionCallArgumentsDone,
     OutputTextDelta,
+    ResponseCompleted,
 )
 from custom_components.codex_conversation.const import (
     CONF_MODEL,
@@ -512,3 +513,39 @@ async def test_async_run_chat_log_appends_attachment_items(tmp_path):
     assert len(captured_requests) == 1
     content = captured_requests[0].input[-1]["content"]
     assert any(item["type"] == "input_image" for item in content)
+
+
+async def test_async_run_chat_log_accumulates_usage():
+    """Token usage should survive conversion through the HA chat-log stream."""
+    chat_log = make_chat_log([UserContent(content="Hello")])
+
+    class _Client:
+        async def stream(self, request):
+            yield OutputTextDelta(delta="done", content_index=0)
+            yield ResponseCompleted(
+                usage={
+                    "input_tokens": 100,
+                    "input_tokens_details": {"cached_tokens": 25},
+                    "output_tokens": 40,
+                    "output_tokens_details": {"reasoning_tokens": 15},
+                    "total_tokens": 140,
+                }
+            )
+
+    usage = await async_run_chat_log(
+        chat_log=chat_log,
+        client=_Client(),
+        model="gpt-5.6-sol",
+        entity_id="conversation.codex",
+        reasoning_effort="high",
+        reasoning_summary="auto",
+        text_verbosity="low",
+    )
+
+    assert usage == {
+        "input_tokens": 100,
+        "input_tokens_details": {"cached_tokens": 25},
+        "output_tokens": 40,
+        "output_tokens_details": {"reasoning_tokens": 15},
+        "total_tokens": 140,
+    }
