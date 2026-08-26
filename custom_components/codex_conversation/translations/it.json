@@ -47,12 +47,14 @@
         "advanced": {
           "title": "Impostazioni avanzate",
           "data": {
+            "image_max_edge": "Lato JPEG massimo",
             "model": "Modello",
             "reasoning_effort": "Impegno nel ragionamento",
             "reasoning_summary": "Riepilogo del ragionamento",
             "text_verbosity": "Verbosità del testo"
           },
           "data_description": {
+            "image_max_edge": "Ridimensiona gli allegati JPEG più grandi prima dell'invio. Usa 0 per mantenere le dimensioni originali.",
             "reasoning_effort": "Quanti token di ragionamento il modello deve generare prima di rispondere.",
             "reasoning_summary": "Controlla la lunghezza e il dettaglio del riepilogo del ragionamento.",
             "text_verbosity": "Controlla la verbosità dell'output testuale del modello."
@@ -79,12 +81,14 @@
         "advanced": {
           "title": "Impostazioni avanzate",
           "data": {
+            "image_max_edge": "Lato JPEG massimo",
             "model": "Modello",
             "reasoning_effort": "Impegno nel ragionamento",
             "reasoning_summary": "Riepilogo del ragionamento",
             "text_verbosity": "Verbosità del testo"
           },
           "data_description": {
+            "image_max_edge": "Ridimensiona gli allegati JPEG più grandi prima dell'invio. Usa 0 per mantenere le dimensioni originali.",
             "reasoning_effort": "Quanti token di ragionamento il modello deve generare prima di rispondere.",
             "reasoning_summary": "Controlla la lunghezza e il dettaglio del riepilogo del ragionamento.",
             "text_verbosity": "Controlla la verbosità dell'output testuale del modello."

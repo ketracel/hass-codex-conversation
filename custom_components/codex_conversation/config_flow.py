@@ -19,6 +19,9 @@ from homeassistant.core import callback
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectSelector,
     SelectSelectorConfig,
     TemplateSelector,
@@ -27,6 +30,7 @@ import voluptuous as vol
 
 from .codex_api.auth import VERIFICATION_URL, CodexDeviceFlow, OAuthToken
 from .const import (
+    CONF_IMAGE_MAX_EDGE,
     CONF_MODEL,
     CONF_PROMPT,
     CONF_REASONING_EFFORT,
@@ -38,6 +42,7 @@ from .const import (
     MODELS,
     RECOMMENDED_AI_TASK_OPTIONS,
     RECOMMENDED_CONVERSATION_OPTIONS,
+    RECOMMENDED_IMAGE_MAX_EDGE,
     RECOMMENDED_REASONING_EFFORT,
     RECOMMENDED_REASONING_SUMMARY,
     RECOMMENDED_TEXT_VERBOSITY,
@@ -250,6 +255,20 @@ class _BaseCodexSubentryFlow(ConfigSubentryFlow):
                         CONF_MODEL,
                         default=options.get(CONF_MODEL, DEFAULT_MODEL),
                     ): SelectSelector(SelectSelectorConfig(options=list(MODELS))),
+                    vol.Required(
+                        CONF_IMAGE_MAX_EDGE,
+                        default=options.get(
+                            CONF_IMAGE_MAX_EDGE, RECOMMENDED_IMAGE_MAX_EDGE
+                        ),
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=0,
+                            max=4096,
+                            step=64,
+                            mode=NumberSelectorMode.BOX,
+                            unit_of_measurement="px",
+                        )
+                    ),
                     vol.Required(
                         CONF_REASONING_EFFORT,
                         default=options.get(

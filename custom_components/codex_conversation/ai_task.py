@@ -17,12 +17,14 @@ from homeassistant.util.json import json_loads
 
 from .codex_api import CodexClient
 from .const import (
+    CONF_IMAGE_MAX_EDGE,
     CONF_MODEL,
     CONF_REASONING_EFFORT,
     CONF_REASONING_SUMMARY,
     CONF_TEXT_VERBOSITY,
     DEFAULT_MODEL,
     DOMAIN,
+    RECOMMENDED_IMAGE_MAX_EDGE,
     RECOMMENDED_REASONING_EFFORT,
     RECOMMENDED_REASONING_SUMMARY,
     RECOMMENDED_TEXT_VERBOSITY,
@@ -134,6 +136,10 @@ class CodexAITaskEntity(ai_task.AITaskEntity):
             text_verbosity=self._options.get(
                 CONF_TEXT_VERBOSITY, RECOMMENDED_TEXT_VERBOSITY
             ),
+            image_max_edge=int(
+                self._options.get(CONF_IMAGE_MAX_EDGE, RECOMMENDED_IMAGE_MAX_EDGE)
+            )
+            or None,
             instructions_suffix=_format_structure_instruction(task),
             max_iterations=100,
         )

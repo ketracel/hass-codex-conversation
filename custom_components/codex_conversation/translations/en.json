@@ -47,12 +47,14 @@
         "advanced": {
           "title": "Advanced settings",
           "data": {
+            "image_max_edge": "Maximum JPEG edge",
             "model": "Model",
             "reasoning_effort": "Reasoning effort",
             "reasoning_summary": "Reasoning summary",
             "text_verbosity": "Text verbosity"
           },
           "data_description": {
+            "image_max_edge": "Resize JPEG attachments larger than this before sending them. Use 0 to keep original dimensions.",
             "reasoning_effort": "How many reasoning tokens the model should generate before responding.",
             "reasoning_summary": "Controls the length and detail of the reasoning summary.",
             "text_verbosity": "Controls the verbosity of the model's text output."
@@ -79,12 +81,14 @@
         "advanced": {
           "title": "Advanced settings",
           "data": {
+            "image_max_edge": "Maximum JPEG edge",
             "model": "Model",
             "reasoning_effort": "Reasoning effort",
             "reasoning_summary": "Reasoning summary",
             "text_verbosity": "Text verbosity"
           },
           "data_description": {
+            "image_max_edge": "Resize JPEG attachments larger than this before sending them. Use 0 to keep original dimensions.",
             "reasoning_effort": "How many reasoning tokens the model should generate before responding.",
             "reasoning_summary": "Controls the length and detail of the reasoning summary.",
             "text_verbosity": "Controls the verbosity of the model's text output."

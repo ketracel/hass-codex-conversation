@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 from datetime import date, datetime
+from io import BytesIO
 import json
 from mimetypes import guess_file_type
 from pathlib import Path
@@ -19,6 +20,7 @@ from homeassistant.components.conversation import (
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
+from PIL import Image
 from voluptuous_openapi import convert
 
 
@@ -97,7 +99,10 @@ def build_input_items(chat_log: ChatLog) -> list[dict[str, Any]]:
 
 
 async def async_prepare_files_for_prompt(
-    hass: HomeAssistant, files: list[tuple[Path, str | None]]
+    hass: HomeAssistant,
+    files: list[tuple[Path, str | None]],
+    *,
+    image_max_edge: int | None = None,
 ) -> list[dict[str, Any]]:
     """Convert user attachments into Responses API input items."""
 
@@ -117,7 +122,24 @@ async def async_prepare_files_for_prompt(
                     f"`{file_path}` is not an image file or PDF"
                 )
 
-            base64_file = base64.b64encode(file_path.read_bytes()).decode("utf-8")
+            file_bytes = file_path.read_bytes()
+            if image_max_edge and mime_type in ("image/jpeg", "image/jpg"):
+                with Image.open(BytesIO(file_bytes)) as image:
+                    if max(image.size) > image_max_edge:
+                        image.thumbnail(
+                            (image_max_edge, image_max_edge),
+                            Image.Resampling.LANCZOS,
+                        )
+                        resized = BytesIO()
+                        image.convert("RGB").save(
+                            resized,
+                            format="JPEG",
+                            quality=90,
+                            optimize=True,
+                        )
+                        file_bytes = resized.getvalue()
+
+            base64_file = base64.b64encode(file_bytes).decode("utf-8")
             if mime_type.startswith("image/"):
                 content.append(
                     {

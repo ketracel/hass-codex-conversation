@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import base64
+from io import BytesIO
 from pathlib import Path
 
 from homeassistant.exceptions import HomeAssistantError
+from PIL import Image
 import pytest
 
 from custom_components.codex_conversation.transform import (
@@ -60,3 +63,20 @@ async def test_async_prepare_files_for_prompt_missing_file() -> None:
             _FakeHass(),
             [(Path("/tmp/definitely-missing-file.png"), "image/png")],
         )
+
+
+async def test_async_prepare_files_for_prompt_resizes_large_jpeg(
+    tmp_path: Path,
+) -> None:
+    file_path = tmp_path / "large.jpg"
+    Image.new("RGB", (400, 200), "red").save(file_path, format="JPEG")
+
+    result = await async_prepare_files_for_prompt(
+        _FakeHass(),
+        [(file_path, "image/jpeg")],
+        image_max_edge=192,
+    )
+
+    encoded = result[0]["image_url"].split(",", 1)[1]
+    with Image.open(BytesIO(base64.b64decode(encoded))) as resized:
+        assert resized.size == (192, 96)

@@ -45,6 +45,7 @@ from .codex_api import (
     ResponseCompleted,
 )
 from .const import (
+    CONF_IMAGE_MAX_EDGE,
     CONF_MODEL,
     CONF_PROMPT,
     CONF_REASONING_EFFORT,
@@ -52,6 +53,7 @@ from .const import (
     CONF_TEXT_VERBOSITY,
     DEFAULT_MODEL,
     DOMAIN,
+    RECOMMENDED_IMAGE_MAX_EDGE,
     RECOMMENDED_REASONING_EFFORT,
     RECOMMENDED_REASONING_SUMMARY,
     RECOMMENDED_TEXT_VERBOSITY,
@@ -183,6 +185,10 @@ class CodexConversationEntity(ConversationEntity):
             text_verbosity=self._options.get(
                 CONF_TEXT_VERBOSITY, RECOMMENDED_TEXT_VERBOSITY
             ),
+            image_max_edge=int(
+                self._options.get(CONF_IMAGE_MAX_EDGE, RECOMMENDED_IMAGE_MAX_EDGE)
+            )
+            or None,
             error_cls=ConverseError,
         )
 
@@ -198,6 +204,7 @@ async def async_run_chat_log(
     reasoning_effort: str,
     reasoning_summary: str,
     text_verbosity: str,
+    image_max_edge: int | None = None,
     max_iterations: int = MAX_TOOL_ITERATIONS,
     instructions_suffix: str = "",
     error_cls: type[Exception] = HomeAssistantError,
@@ -221,6 +228,7 @@ async def async_run_chat_log(
             files = await async_prepare_files_for_prompt(
                 chat_log.hass,
                 [(a.path, a.mime_type) for a in last_content.attachments],
+                image_max_edge=image_max_edge,
             )
             last_message = input_items[-1]
             if (
